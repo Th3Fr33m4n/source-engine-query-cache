@@ -5,12 +5,12 @@ import (
 	mrand "math/rand"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
-	"github.com/leprosus/golang-ttl-map"
+	ttlMap "github.com/leprosus/golang-ttl-map"
 )
 
 const randomIntervalThreshold = 20
 
-var challengeMap = ttl_map.New()
+var challengeMap = ttlMap.New()
 
 func GenerateRandom() []byte {
 	ch := make([]byte, 4)

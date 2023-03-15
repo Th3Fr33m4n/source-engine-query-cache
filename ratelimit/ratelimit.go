@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
-	"github.com/leprosus/golang-ttl-map"
+	ttlMap "github.com/leprosus/golang-ttl-map"
 	"golang.org/x/time/rate"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	limiterMap    = ttl_map.New()
+	limiterMap    = ttlMap.New()
 	globalLimiter = rate.NewLimiter(
 		rate.Every(time.Millisecond*time.Duration(config.Get().RateLimitGlobal)),
 		int(config.Get().RateLimitGlobalBurst))
