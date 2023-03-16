@@ -4,13 +4,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/internal/utils"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 )
 

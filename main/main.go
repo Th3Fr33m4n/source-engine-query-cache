@@ -4,13 +4,11 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/internal/scraper"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/public/listeners"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {

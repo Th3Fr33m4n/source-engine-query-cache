@@ -3,11 +3,9 @@ package scraper
 import (
 	"testing"
 
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
-
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
-
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
 )
 
 func TestGetSomething(t *testing.T) {

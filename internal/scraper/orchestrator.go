@@ -4,15 +4,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
-
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
 	"github.com/go-co-op/gocron"
 	ttl_map "github.com/leprosus/golang-ttl-map"
+	log "github.com/sirupsen/logrus"
 )
 
 var (

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
-
 	"github.com/spf13/viper"
 )
 
