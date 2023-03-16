@@ -3,6 +3,8 @@ package a2s
 import (
 	"testing"
 
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,4 +49,28 @@ func TestParseSourceMultipacketResponse(t *testing.T) {
 
 	assert.Equal(t, byte(1), pNumber)
 	assert.Equal(t, byte(2), totalPackets)
+}
+
+func TestCategorizeRequest(t *testing.T) {
+	cat, hasChallenge := CategorizeRequest(a2sInfoRequest)
+	assert.Equal(t, domain.A2sInfo, cat)
+	assert.False(t, hasChallenge)
+	cat, hasChallenge = CategorizeRequest(a2sPlayersRequest)
+	assert.Equal(t, domain.A2sPlayers, cat)
+	assert.False(t, hasChallenge)
+	cat, hasChallenge = CategorizeRequest(a2sRulesRequest)
+	assert.Equal(t, domain.A2sRules, cat)
+	assert.False(t, hasChallenge)
+	cat, hasChallenge = CategorizeRequest(append(a2sInfoRequest, 0xff, 0x45, 0x23, 0x89))
+	assert.Equal(t, domain.A2sInfo, cat)
+	assert.True(t, hasChallenge)
+	cat, hasChallenge = CategorizeRequest(append(a2sPlayersPrefix, 0xff, 0x45, 0x23, 0x89))
+	assert.Equal(t, domain.A2sPlayers, cat)
+	assert.True(t, hasChallenge)
+	cat, hasChallenge = CategorizeRequest(append(a2sRulesPrefix, 0xff, 0x45, 0x23, 0x89))
+	assert.Equal(t, domain.A2sRules, cat)
+	assert.True(t, hasChallenge)
+	cat, hasChallenge = CategorizeRequest([]byte{0xff, 0x45, 0x23, 0x89})
+	assert.Equal(t, domain.InvalidQuery, cat)
+	assert.False(t, hasChallenge)
 }
