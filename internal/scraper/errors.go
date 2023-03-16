@@ -1,4 +1,4 @@
-package gameserverinfo
+package scraper
 
 import "errors"
 

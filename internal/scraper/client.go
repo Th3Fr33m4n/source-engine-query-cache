@@ -1,81 +1,81 @@
-package gameserverinfo
+package scraper
 
 import (
 	"net"
 	"time"
 
-	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/internal/utils"
-	"github.com/Th3Fr33m4n/source-engine-query-cache/packets"
 	"golang.org/x/exp/maps"
 )
 
+type QueryContext struct {
+	Sv           domain.GameServer
+	A2sQ         a2s.A2sQuery
+	conn         *net.UDPConn
+	lastResponse []byte
+}
+
 var challenges = utils.NewConcurrentMap()
 
-func ConnectAndQuery(sv config.GameServer, qt packets.QueryType) ([][]byte, error) {
-	conn, err := connect(sv)
+func ConnectAndQuery(ctx *QueryContext) ([][]byte, error) {
+	var err error
+	ctx.conn, err = connect(ctx.Sv)
 	if err != nil {
 		return nil, err
 	}
 
-	defer conn.Close()
+	defer ctx.conn.Close()
 
 	log.Debug("sending query")
-	chKey := sv.String()
-	ch := challenges.Get(chKey)
+	ch := challenges.Get(ctx.Sv.String())
 	var q []byte
 
 	if ch == nil {
 		// no challenge set for this client
-		q = packets.GetQuery(qt)
+		q = ctx.A2sQ.Query
 	} else {
 		// a challenge for this client has already been set, use it
-		q = packets.BuildQuery(qt, ch.([]byte))
+		q = ctx.A2sQ.Build(ch.([]byte))
 	}
 
-	response, err := sendAndGet(conn, q)
+	ctx.lastResponse, err = sendAndGet(ctx.conn, q)
 	if err != nil {
 		return nil, err
 	}
 
-	cat := packets.CategorizeResponse(response)
+	cat := ctx.A2sQ.MatchResponse(ctx.lastResponse)
 
-	if cat == packets.A2sChallengeResponse {
-		log.Debug("server response is a challenge")
-		ch = packets.GetChallengeFromServerResponse(response)
-		challenges.Set(chKey, ch)
-		// increase deadline because this is a second request
-		addDeadline(conn)
-		q = packets.BuildQuery(qt, ch.([]byte))
-		log.Debug("sending query with challenge")
-		response, err = sendAndGet(conn, q)
+	if cat == domain.A2sChallengeResponse {
+		cat, err = addChallengeAndResend(ctx)
 		if err != nil {
 			return nil, err
 		}
-		cat = packets.CategorizeResponse(response)
 	}
 
-	if cat == packets.A2sRulesSplitResponse {
-		mpResponse, err := handleSplitPacket(conn, response, sv.Engine)
+	if cat == domain.A2sRulesSplitResponse {
+		mpResponse, err := handleSplitPacket(ctx)
 		if err != nil {
 			return nil, err
 		}
 		return mpResponse, nil
-	} else if cat == packets.GetQueryResponseType(qt) {
+	} else if cat != domain.InvalidResponse {
 		log.Debug("response matches expected structure")
-		log.Debug(string(response))
-		return [][]byte{response}, nil
+		log.Debug(string(ctx.lastResponse))
+		return [][]byte{ctx.lastResponse}, nil
 	} else {
 		log.Error("invalid server response")
-		log.Debug(string(response))
+		log.Debug(string(ctx.lastResponse))
 		return nil, ErrInvalidResponse
 	}
 }
 
-func connect(g config.GameServer) (*net.UDPConn, error) {
+func connect(g domain.GameServer) (*net.UDPConn, error) {
 	udpServer, err := net.ResolveUDPAddr("udp", g.String())
 	if err != nil {
 		log.Errorf("resolveUDPAddr failed: %v", err.Error())
@@ -110,20 +110,36 @@ func addDeadline(conn *net.UDPConn) {
 	conn.SetDeadline(time.Now().Add(config.Get().ServerInfoUpdateTimeout))
 }
 
-func handleSplitPacket(conn *net.UDPConn, msg []byte, engine domain.EngineType) ([][]byte, error) {
+func addChallengeAndResend(ctx *QueryContext) (domain.ResponseType, error) {
+	log.Debug("server response is a challenge")
+	ch := ctx.A2sQ.GetChallengeFromResponse(ctx.lastResponse)
+	challenges.Set(ctx.Sv.String(), ch)
+	// increase deadline because this is a second request
+	addDeadline(ctx.conn)
+	q := ctx.A2sQ.Build(ch)
+	log.Debug("sending query with challenge")
+	var err error
+	ctx.lastResponse, err = sendAndGet(ctx.conn, q)
+	if err != nil {
+		return domain.InvalidResponse, err
+	}
+	return ctx.A2sQ.MatchResponse(ctx.lastResponse), nil
+}
+
+func handleSplitPacket(ctx *QueryContext) ([][]byte, error) {
 	responsePackets := make(map[byte][]byte)
-	pNum, totalPackets := getPacketCount(msg, engine)
-	responsePackets[pNum] = msg
+	pNum, totalPackets := getPacketCount(ctx.lastResponse, ctx.Sv.Engine)
+	responsePackets[pNum] = ctx.lastResponse
 	var addedPackets byte = 1
 	for addedPackets < totalPackets {
 		l1 := len(responsePackets)
 		p := make([]byte, config.Get().ReadBufferSize)
-		addDeadline(conn)
-		rb, err := conn.Read(p)
+		addDeadline(ctx.conn)
+		rb, err := ctx.conn.Read(p)
 		if err != nil {
 			return nil, err
 		}
-		pNum, _ = getPacketCount(p, engine)
+		pNum, _ = getPacketCount(p, ctx.Sv.Engine)
 		responsePackets[pNum] = p[:rb]
 		l2 := len(responsePackets)
 		if l1 != l2 {
@@ -135,8 +151,8 @@ func handleSplitPacket(conn *net.UDPConn, msg []byte, engine domain.EngineType) 
 
 func getPacketCount(msg []byte, engine domain.EngineType) (byte, byte) {
 	if engine == domain.GoldSrc {
-		return packets.ParseGoldsrcMultipacketResponse(msg)
+		return a2s.ParseGoldsrcMultipacketResponse(msg)
 	} else {
-		return packets.ParseSourceMultipacketResponse(msg)
+		return a2s.ParseSourceMultipacketResponse(msg)
 	}
 }

@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
-	"github.com/Th3Fr33m4n/source-engine-query-cache/internal/gameserverinfo"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/internal/scraper"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/public/listeners"
 )
 
@@ -23,15 +23,15 @@ func main() {
 
 	for _, sv := range config.Get().Servers {
 		if sv.Engine == domain.Source || sv.Engine == domain.GoldSrc {
-			gameserverinfo.RegisterServer(sv)
+			scraper.RegisterServer(sv)
 		} else {
 			log.Panicf("Invalid engine type for server %s", sv.String())
 		}
 	}
 
-	log.Info("Starting background game server scavenger...")
-	gameserverinfo.Init()
-	defer gameserverinfo.Shutdown()
+	log.Info("Starting background game server info scraper...")
+	scraper.Init()
+	defer scraper.Shutdown()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

@@ -1,15 +1,18 @@
-package gameserverinfo
+package scraper
 
 import (
 	"sync"
 	"time"
 
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
-	"github.com/Th3Fr33m4n/source-engine-query-cache/packets"
 	"github.com/go-co-op/gocron"
-	"github.com/leprosus/golang-ttl-map"
+	ttl_map "github.com/leprosus/golang-ttl-map"
 )
 
 var (
@@ -21,28 +24,28 @@ type ServerInfo struct {
 	Info    [][]byte
 	Rules   [][]byte
 	Players [][]byte
-	Server  config.GameServer
+	Server  domain.GameServer
 }
 
-func (s *ServerInfo) AddInfo(qt packets.QueryType, info [][]byte) {
+func (s *ServerInfo) AddInfo(qt domain.QueryType, info [][]byte) {
 	switch qt {
-	case packets.A2sInfo:
+	case domain.A2sInfo:
 		s.Info = info
-	case packets.A2sRules:
+	case domain.A2sRules:
 		s.Rules = info
-	case packets.A2sPlayers:
+	case domain.A2sPlayers:
 		s.Players = info
 	}
 }
 
-func (s *ServerInfo) GetInfo(qt packets.QueryType) [][]byte {
+func (s *ServerInfo) GetInfo(qt domain.QueryType) [][]byte {
 	var res [][]byte
 	switch qt {
-	case packets.A2sInfo:
+	case domain.A2sInfo:
 		res = s.Info
-	case packets.A2sRules:
+	case domain.A2sRules:
 		res = s.Rules
-	case packets.A2sPlayers:
+	case domain.A2sPlayers:
 		res = s.Players
 	}
 	return res
@@ -52,11 +55,11 @@ func getTTL() int64 {
 	return int64(3 * config.Get().ServerInfoUpdateInterval)
 }
 
-func RegisterServer(g config.GameServer) {
+func RegisterServer(g domain.GameServer) {
 	infoMap.Set(g.String(), &ServerInfo{Server: g}, getTTL())
 }
 
-func GetServerInfo(g config.GameServer) (*ServerInfo, error) {
+func GetServerInfo(g domain.GameServer) (*ServerInfo, error) {
 	info, ok := infoMap.Get(g.String())
 	if !ok {
 		return nil, ErrMissingServerInfo
@@ -91,17 +94,18 @@ func ObtainServerInfo(s *ServerInfo) {
 	log.Debug("obtaining info from server")
 	var wg sync.WaitGroup
 	wg.Add(3)
-	go FillInfo(packets.A2sInfo, s, &wg)
-	go FillInfo(packets.A2sPlayers, s, &wg)
-	go FillInfo(packets.A2sRules, s, &wg)
+	go FillInfo(a2s.InfoQuery, s, &wg)
+	go FillInfo(a2s.PlayersQuery, s, &wg)
+	go FillInfo(a2s.RulesQuery, s, &wg)
 	wg.Wait()
 	infoMap.Set(s.Server.String(), s, getTTL())
 }
 
-func FillInfo(qt packets.QueryType, serverInfo *ServerInfo, wg *sync.WaitGroup) {
-	response, err := ConnectAndQuery(serverInfo.Server, qt)
+func FillInfo(a2sq a2s.A2sQuery, serverInfo *ServerInfo, wg *sync.WaitGroup) {
+	ctx := &QueryContext{A2sQ: a2sq, Sv: serverInfo.Server}
+	response, err := ConnectAndQuery(ctx)
 	if err == nil {
-		serverInfo.AddInfo(qt, response)
+		serverInfo.AddInfo(a2sq.QueryT, response)
 	}
 	wg.Done()
 }

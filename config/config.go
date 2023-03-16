@@ -1,23 +1,12 @@
 package config
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
 
 	"github.com/spf13/viper"
 )
-
-type GameServer struct {
-	IP     string
-	Port   string
-	Engine domain.EngineType
-}
-
-func (g *GameServer) String() string {
-	return fmt.Sprintf("%s:%s", g.IP, g.Port)
-}
 
 type configWrapper struct {
 	LogLevel                 string
@@ -31,7 +20,7 @@ type configWrapper struct {
 	RateLimitClientBurst     uint
 	ServerInfoUpdateTimeout  time.Duration
 	ServerInfoUpdateInterval int
-	Servers                  map[string]GameServer
+	Servers                  map[string]domain.GameServer
 }
 
 var cfg configWrapper

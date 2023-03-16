@@ -1,16 +1,19 @@
-package gameserverinfo
+package scraper
 
 import (
 	"testing"
 
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
+
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
-	"github.com/Th3Fr33m4n/source-engine-query-cache/packets"
 )
 
 func TestGetSomething(t *testing.T) {
 	config.Init()
-	sv := config.GameServer{IP: "216.52.148.19", Port: "27016", Engine: "goldsrc"}
-	response, err := ConnectAndQuery(sv, packets.A2sInfo)
+	sv := domain.GameServer{IP: "216.52.148.19", Port: "27016", Engine: "goldsrc"}
+	response, err := ConnectAndQuery(&QueryContext{Sv: sv, A2sQ: a2s.InfoQuery})
 	if err != nil {
 		println(err)
 		t.Error(err)

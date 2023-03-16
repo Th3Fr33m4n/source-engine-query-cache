@@ -3,16 +3,15 @@ package listeners
 import (
 	"net"
 
-	"github.com/Th3Fr33m4n/source-engine-query-cache/public/handlers"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
-	"github.com/Th3Fr33m4n/source-engine-query-cache/packets"
-	"github.com/Th3Fr33m4n/source-engine-query-cache/ratelimit"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/public/handlers"
+	"github.com/Th3Fr33m4n/source-engine-query-cache/public/ratelimit"
+	log "github.com/sirupsen/logrus"
 )
 
-func Listen(g config.GameServer) {
+func Listen(g domain.GameServer) {
 	// listen to incoming udp packets
 	p := ":" + g.Port
 	udpServer, err := net.ListenPacket("udp", p)
@@ -35,34 +34,33 @@ func Listen(g config.GameServer) {
 	}
 }
 
-func response(conn net.PacketConn, addr net.Addr, buf []byte, sv config.GameServer) {
+func response(conn net.PacketConn, addr net.Addr, req []byte, sv domain.GameServer) {
 	glbrtl := ratelimit.GetGlobalLimiter()
 	clrtl := ratelimit.GetLimiterForAddress(addr.String())
 
 	if !glbrtl.Allow() || !clrtl.Allow() {
-		conn.WriteTo(packets.TooManyRequests, addr)
+		conn.WriteTo(a2s.TooManyRequests, addr)
+		return
+	}
+	cat, hasChallenge := a2s.CategorizeRequest(req)
+
+	if cat == domain.InvalidQuery {
 		return
 	}
 
-	if packets.IsA2sInfoRequest(buf) || packets.IsA2sPlayersRequest(buf) || packets.IsA2sRulesRequest(buf) {
+	if !hasChallenge {
 		handlers.SendChallenge(conn, addr)
-	} else if packets.IsA2sInfoWChallenge(buf) {
+	} else if cat == domain.A2sInfo {
 		handlers.A2sQueryHandler(handlers.A2sQueryContext{
-			Conn: conn, Addr: addr, Query: buf, Sv: sv,
-			GetChallenge: packets.GetChallengeFromA2sInfo,
-			QType:        packets.A2sInfo,
+			Conn: conn, Addr: addr, RawQuery: req, Sv: sv, A2sq: a2s.InfoQuery,
 		})
-	} else if packets.IsA2sPlayersWChallenge(buf) {
+	} else if cat == domain.A2sPlayers {
 		handlers.A2sQueryHandler(handlers.A2sQueryContext{
-			Conn: conn, Addr: addr, Query: buf, Sv: sv,
-			GetChallenge: packets.GetChallengeFromA2sPlayers,
-			QType:        packets.A2sPlayers,
+			Conn: conn, Addr: addr, RawQuery: req, Sv: sv, A2sq: a2s.PlayersQuery,
 		})
-	} else if packets.IsA2sRulesWChallenge(buf) {
+	} else if cat == domain.A2sRules {
 		handlers.A2sQueryHandler(handlers.A2sQueryContext{
-			Conn: conn, Addr: addr, Query: buf, Sv: sv,
-			GetChallenge: packets.GetChallengeFromA2sRules,
-			QType:        packets.A2sRules,
+			Conn: conn, Addr: addr, RawQuery: req, Sv: sv, A2sq: a2s.RulesQuery,
 		})
 	}
 }
