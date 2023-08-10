@@ -6,7 +6,7 @@ rateLimitGlobalBurst: 333
 rateLimitClient: 150
 rateLimitClientBurst: 5
 serverInfoUpdateTimeout: 550ms
-serverInfoUpdateInterval: 30
+serverInfoUpdateInterval: 20
 servers:
   "sv1": 
     "ip": "216.52.148.19"

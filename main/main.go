@@ -13,8 +13,7 @@ import (
 
 func main() {
 	displayBanner()
-	log.Info("Source engine query cache starting" +
-		"g up...")
+	log.Info("Source engine query cache starting up...")
 	config.Init()
 	log.Info("Config loaded")
 	setUpLogger()

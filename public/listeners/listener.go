@@ -35,11 +35,14 @@ func Listen(g domain.GameServer) {
 }
 
 func response(conn net.PacketConn, addr net.Addr, req []byte, sv domain.GameServer) {
-	glbrtl := ratelimit.GetGlobalLimiter()
-	clrtl := ratelimit.GetLimiterForAddress(addr.String())
+	globalLimiter := ratelimit.GetGlobalLimiter()
+	clientLimiter := ratelimit.GetLimiterForAddress(addr.String())
 
-	if !glbrtl.Allow() || !clrtl.Allow() {
-		conn.WriteTo(a2s.TooManyRequests, addr)
+	if !globalLimiter.Allow() || !clientLimiter.Allow() {
+		_, err := conn.WriteTo(a2s.TooManyRequests, addr)
+		if err != nil {
+			log.Error(err)
+		}
 		return
 	}
 	cat, hasChallenge := a2s.CategorizeRequest(req)
