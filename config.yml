@@ -6,13 +6,9 @@ rateLimitGlobalBurst: 333
 rateLimitClient: 150
 rateLimitClientBurst: 5
 serverInfoUpdateTimeout: 550ms
-serverInfoUpdateInterval: 30
+serverInfoUpdateInterval: 20
 servers:
   "sv1": 
-    "ip": "216.52.148.19"
-    "port": "27016"
-    "engine": "goldsrc"
-  "sv2":
-    "ip": "162.248.92.111"
-    "port": "27017"
+    "ip": "127.0.0.1"
+    "port": "27015"
     "engine": "goldsrc"

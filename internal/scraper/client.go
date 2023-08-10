@@ -14,7 +14,7 @@ import (
 
 type QueryContext struct {
 	Sv           domain.GameServer
-	A2sQ         a2s.A2sQuery
+	A2sQ         a2s.Query
 	conn         *net.UDPConn
 	lastResponse []byte
 }
@@ -36,7 +36,7 @@ func ConnectAndQuery(ctx *QueryContext) ([][]byte, error) {
 
 	if ch == nil {
 		// no challenge set for this client
-		q = ctx.A2sQ.Query
+		q = ctx.A2sQ.Body
 	} else {
 		// a challenge for this client has already been set, use it
 		q = ctx.A2sQ.Build(ch.([]byte))

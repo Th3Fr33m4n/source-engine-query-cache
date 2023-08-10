@@ -8,12 +8,12 @@ import (
 	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
 	"github.com/Th3Fr33m4n/source-engine-query-cache/domain/a2s"
 	"github.com/go-co-op/gocron"
-	ttl_map "github.com/leprosus/golang-ttl-map"
+	ttlMap "github.com/leprosus/golang-ttl-map"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	infoMap   = ttl_map.New()
+	infoMap   = ttlMap.New()
 	scheduler *gocron.Scheduler
 )
 
@@ -98,11 +98,11 @@ func ObtainServerInfo(s *ServerInfo) {
 	infoMap.Set(s.Server.String(), s, getTTL())
 }
 
-func FillInfo(a2sq a2s.A2sQuery, serverInfo *ServerInfo, wg *sync.WaitGroup) {
+func FillInfo(a2sq a2s.Query, serverInfo *ServerInfo, wg *sync.WaitGroup) {
 	ctx := &QueryContext{A2sQ: a2sq, Sv: serverInfo.Server}
 	response, err := ConnectAndQuery(ctx)
 	if err == nil {
-		serverInfo.AddInfo(a2sq.QueryT, response)
+		serverInfo.AddInfo(a2sq.Type, response)
 	}
 	wg.Done()
 }

@@ -6,68 +6,68 @@ import (
 	"github.com/Th3Fr33m4n/source-engine-query-cache/domain"
 )
 
-type A2sQuery struct {
-	QueryT         domain.QueryType
-	Query          []byte
+type Query struct {
+	Type           domain.QueryType
+	Body           []byte
 	Header         []byte
-	ResponseT      domain.ResponseType
+	ResponseType   domain.ResponseType
 	ResponseHeader []byte
 }
 
-func (q *A2sQuery) MatchResponse(res []byte) domain.ResponseType {
+func (q *Query) MatchResponse(res []byte) domain.ResponseType {
 	if bytes.HasPrefix(res, q.ResponseHeader) {
-		return q.ResponseT
+		return q.ResponseType
 	}
 
 	rt := domain.InvalidResponse
 	if bytes.HasPrefix(res, a2sChallengePrefix) {
 		rt = domain.A2sChallengeResponse
-	} else if q.QueryT == domain.A2sRules && bytes.HasPrefix(res, a2sMultipacketResponsePrefix) {
+	} else if q.Type == domain.A2sRules && bytes.HasPrefix(res, a2sMultipacketResponsePrefix) {
 		rt = domain.A2sRulesSplitResponse
 	}
 	return rt
 }
 
-func (q *A2sQuery) IsQueryWChallenge(res []byte) bool {
+func (q *Query) IsQueryWChallenge(res []byte) bool {
 	return bytes.HasPrefix(res, q.Header) && len(res) == len(q.Header)+challengeBytes
 }
 
-func (q *A2sQuery) Build(challenge []byte) []byte {
+func (q *Query) Build(challenge []byte) []byte {
 	return append(q.Header, challenge...)
 }
 
-func (q *A2sQuery) GetChallengeFromRequest(req []byte) []byte {
+func (q *Query) GetChallengeFromRequest(req []byte) []byte {
 	hLen := len(q.Header)
 	return req[hLen : hLen+challengeBytes]
 }
 
-func (q *A2sQuery) GetChallengeFromResponse(res []byte) []byte {
+func (q *Query) GetChallengeFromResponse(res []byte) []byte {
 	hLen := len(a2sChallengePrefix)
 	return res[hLen : hLen+challengeBytes]
 }
 
 var (
-	InfoQuery = A2sQuery{
-		QueryT:         domain.A2sInfo,
-		Query:          a2sInfoRequest,
+	InfoQuery = Query{
+		Type:           domain.A2sInfo,
+		Body:           a2sInfoRequest,
 		Header:         a2sInfoRequest,
-		ResponseT:      domain.A2sInfoResponse,
+		ResponseType:   domain.A2sInfoResponse,
 		ResponseHeader: a2sInfoResponsePrefix,
 	}
 
-	PlayersQuery = A2sQuery{
-		QueryT:         domain.A2sPlayers,
-		Query:          a2sPlayersRequest,
+	PlayersQuery = Query{
+		Type:           domain.A2sPlayers,
+		Body:           a2sPlayersRequest,
 		Header:         a2sPlayersPrefix,
-		ResponseT:      domain.A2sPlayersResponse,
+		ResponseType:   domain.A2sPlayersResponse,
 		ResponseHeader: a2sPlayersResponsePrefix,
 	}
 
-	RulesQuery = A2sQuery{
-		QueryT:         domain.A2sRules,
-		Query:          a2sRulesRequest,
+	RulesQuery = Query{
+		Type:           domain.A2sRules,
+		Body:           a2sRulesRequest,
 		Header:         a2sRulesPrefix,
-		ResponseT:      domain.A2sRulesResponse,
+		ResponseType:   domain.A2sRulesResponse,
 		ResponseHeader: a2sRulesResponsePrefix,
 	}
 )

@@ -15,25 +15,25 @@ type A2sQueryContext struct {
 	Conn     net.PacketConn
 	Addr     net.Addr
 	RawQuery []byte
-	A2sq     a2s.A2sQuery
+	A2sq     a2s.Query
 	Sv       domain.GameServer
 }
 
-func SendChallenge(udpServer net.PacketConn, addr net.Addr) {
+func SendChallenge(udpServer net.PacketConn, addr net.Addr) (int, error) {
 	ch := challenge.GetForClient(addr.String())
-	udpServer.WriteTo(a2s.BuildChallengeResponse(ch), addr)
+	return udpServer.WriteTo(a2s.BuildChallengeResponse(ch), addr)
 }
 
 func A2sQueryHandler(ctx A2sQueryContext) {
-	clch := challenge.GetForClient(ctx.Addr.String())
+	clCh := challenge.GetForClient(ctx.Addr.String())
 	ch := ctx.A2sq.GetChallengeFromRequest(ctx.RawQuery)
 
-	if bytes.Equal(clch, ch) {
+	if bytes.Equal(clCh, ch) {
 		si, err := scraper.GetServerInfo(ctx.Sv)
 		if err != nil {
 			log.Println(err.Error())
 		}
-		v := si.GetInfo(ctx.A2sq.QueryT)
+		v := si.GetInfo(ctx.A2sq.Type)
 		if v != nil {
 			log.Println(v)
 			for _, p := range v {
