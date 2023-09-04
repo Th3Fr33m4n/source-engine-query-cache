@@ -1,9 +1,10 @@
 package ratelimit
 
 import (
-	"log"
 	"math/rand"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Th3Fr33m4n/source-engine-query-cache/config"
 	ttlMap "github.com/leprosus/golang-ttl-map"
@@ -28,15 +29,21 @@ func GetGlobalLimiter() *rate.Limiter {
 
 func GetLimiterForAddress(addr string) *rate.Limiter {
 	savedLimiter, ok := limiterMap.Get(addr)
+
 	if !ok {
-		log.Println("error obtaining rate limiter for client " + addr)
+		log.Debug("missing rate limiter for client " + addr)
 	}
+
 	if savedLimiter != nil {
 		return savedLimiter.(*rate.Limiter)
 	}
+
 	limiter := rate.NewLimiter(
 		rate.Every(time.Millisecond*time.Duration(config.Get().RateLimitClient)),
 		int(config.Get().RateLimitClientBurst))
-	limiterMap.Set(addr, limiter, baseExpirationTime+int64(rand.Intn(randomIntervalThreshold)))
+
+	ttl := baseExpirationTime + int64(rand.Intn(randomIntervalThreshold))
+	limiterMap.Set(addr, limiter, ttl)
+
 	return limiter
 }

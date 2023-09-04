@@ -58,9 +58,11 @@ func RegisterServer(g domain.GameServer) {
 
 func GetServerInfo(g domain.GameServer) (*ServerInfo, error) {
 	info, ok := infoMap.Get(g.String())
+
 	if !ok {
 		return nil, ErrMissingServerInfo
 	}
+
 	return info.(*ServerInfo), nil
 }
 
@@ -79,9 +81,10 @@ func Shutdown() {
 }
 
 func UpdateServersInfo() {
-	log.Info("checking for updates")
+	log.Debug("checking for server info updates")
+
 	infoMap.Range(func(key string, value interface{}, ttl int64) {
-		log.Info("updating server info for: " + key)
+		log.Debug("updating server info for: " + key)
 		si := value.(*ServerInfo)
 		go ObtainServerInfo(si)
 	})
@@ -89,11 +92,14 @@ func UpdateServersInfo() {
 
 func ObtainServerInfo(s *ServerInfo) {
 	log.Debug("obtaining info from server")
+
 	var wg sync.WaitGroup
 	wg.Add(3)
+
 	go FillInfo(a2s.InfoQuery, s, &wg)
 	go FillInfo(a2s.PlayersQuery, s, &wg)
 	go FillInfo(a2s.RulesQuery, s, &wg)
+
 	wg.Wait()
 	infoMap.Set(s.Server.String(), s, getTTL())
 }
@@ -101,8 +107,12 @@ func ObtainServerInfo(s *ServerInfo) {
 func FillInfo(a2sq a2s.Query, serverInfo *ServerInfo, wg *sync.WaitGroup) {
 	ctx := &QueryContext{A2sQ: a2sq, Sv: serverInfo.Server}
 	response, err := ConnectAndQuery(ctx)
+
 	if err == nil {
 		serverInfo.AddInfo(a2sq.Type, response)
+	} else {
+		log.Error("error obtaining server info: ", err)
 	}
+
 	wg.Done()
 }

@@ -31,11 +31,11 @@ func A2sQueryHandler(ctx A2sQueryContext) {
 	if bytes.Equal(clCh, ch) {
 		si, err := scraper.GetServerInfo(ctx.Sv)
 		if err != nil {
-			log.Println(err.Error())
+			log.Error(err.Error())
 		}
 		v := si.GetInfo(ctx.A2sq.Type)
 		if v != nil {
-			log.Println(v)
+			log.Debug(v)
 			for _, p := range v {
 				ctx.Conn.WriteTo(p, ctx.Addr)
 			}
